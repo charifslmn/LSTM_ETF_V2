@@ -37,10 +37,10 @@ import torch
 
 
 
-with open('/Users/cs/Desktop/LSTM_ETF/short_dfs.pkl', 'rb') as f:
+with open('/Users/cs/Desktop/LSTM_ETF_V2/short_dfs.pkl', 'rb') as f:
     loaded_dfs = pickle.load(f)
 
-with open("/Users/cs/Desktop/LSTM_ETF/lagged_cache.pkl", "rb") as f:
+with open("/Users/cs/Desktop/LSTM_ETF_V2/lagged_cache.pkl", "rb") as f:
     lagged_cache = pickle.load(f)
 
 #*#*#* CHANGED: Set torch.backends.cudnn.enabled = True to ensure cuDNN is enabled for NVIDIA GPU acceleration.
@@ -210,7 +210,7 @@ class LSTM(nn.Module):
         return out
 
 
-def train_one_epoch(model, train_loader, optimizer, loss_function, train_losses):
+def train_one_epoch(model, train_loader, optimizer, loss_function):
     model.train()
     
     running_loss = 0.0
@@ -229,15 +229,15 @@ def train_one_epoch(model, train_loader, optimizer, loss_function, train_losses)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    avg_epoch_loss = total_loss / len(train_loader)
-    train_losses.append(avg_epoch_loss)
+    # avg_epoch_loss = total_loss / len(train_loader)
+    # train_losses.append(avg_epoch_loss)
 
 
 
 #*#*#*#* #*#*#*#* #*#*#*#* #*#*#*#* #*#*#*#*.     NEW NEW NEW SEPT 7
 
 
-def train_one_epoch_custom_loss_BCE_THRESH(model, train_loader, optimizer, train_losses , 
+def train_one_epoch_custom_loss_BCE_THRESH(model, train_loader, optimizer, 
                            balancing_Weight_factor , use_LOW_weights : bool):
     
     model.train()
@@ -258,10 +258,10 @@ def train_one_epoch_custom_loss_BCE_THRESH(model, train_loader, optimizer, train
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    avg_epoch_loss = total_loss / len(train_loader)
-    train_losses.append(avg_epoch_loss)
+    # avg_epoch_loss = total_loss / len(train_loader)
+    # train_losses.append(avg_epoch_loss)
 
-def train_one_epoch_custom_loss_BCE_THRESH_AND_SEVERITY(model, train_loader, train_loader_RAW_Y_vals, optimizer, train_losses , 
+def train_one_epoch_custom_loss_BCE_THRESH_AND_SEVERITY(model, train_loader, train_loader_RAW_Y_vals, optimizer , 
                            balancing_Weight_factor , use_LOW_weights : bool):
     
     model.train()
@@ -287,8 +287,8 @@ def train_one_epoch_custom_loss_BCE_THRESH_AND_SEVERITY(model, train_loader, tra
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    avg_epoch_loss = total_loss / len(train_loader)
-    train_losses.append(avg_epoch_loss)
+    # avg_epoch_loss = total_loss / len(train_loader)
+    # train_losses.append(avg_epoch_loss)
 
 
 
@@ -323,7 +323,7 @@ def custom_loss_BCE_THRESH_PENALIZATION(preds, actuals, balancing_Weight_factor 
             elif (thresh_bucket_3[0] <= p_val <= thresh_bucket_3[1]):
                 weights.append(thresh_bucket_3_factor)
             else:
-                weights.append(1.0) # Default weight if none of the above conditions are met
+                weights.append(1.0) # Default weight if none of the above conditions are met --- should not happen, all combos are accounted for
 
     # Create weights tensor on the same device as preds
     weights_tensor = torch.tensor(weights, dtype=torch.float32, device=preds.device).detach()
@@ -344,7 +344,7 @@ def custom_loss_BCE_THRESH_AND_SEVERITY_PENALIZATION(preds, actuals, ACTUALS_RAW
     thresh_bucket_2 = (0.8, 0.9); thresh_bucket_2_factor = 1.7 if use_LOW_weights else 2.0
     thresh_bucket_3 = (0.9, 1.0); thresh_bucket_3_factor = 2.5 if use_LOW_weights else 3.0
 
-    SEVERE_CASE_VAL = 0.10
+    SEVERE_CASE_VAL = - 0.12 ### for HOD 
     SEVERE_CASE_FACTOR = 1.5 
     # SEVERE_CASE_FACTOR = 2.5 
 
@@ -372,10 +372,12 @@ def custom_loss_BCE_THRESH_AND_SEVERITY_PENALIZATION(preds, actuals, ACTUALS_RAW
                 weights.append(thresh_bucket_1_factor)
             elif (thresh_bucket_2[0] <= p_val < thresh_bucket_2[1]):
                 weights.append(thresh_bucket_2_factor)
-            elif (thresh_bucket_3[0] <= p_val <= thresh_bucket_3[1]) and (a_raw_val >= SEVERE_CASE_VAL):
+            elif (thresh_bucket_3[0] <= p_val <= thresh_bucket_3[1]) and (a_raw_val > SEVERE_CASE_VAL):
+                weights.append(thresh_bucket_3_factor)
+            elif (thresh_bucket_3[0] <= p_val <= thresh_bucket_3[1]) and (a_raw_val <= SEVERE_CASE_VAL):
                 weights.append(thresh_bucket_3_factor * SEVERE_CASE_FACTOR)  # Increase weight for severe cases
             else:
-                weights.append(1.0) # Default weight if none of the above conditions are met
+                weights.append(1.0) # Default weight if none of the above conditions are met --- should not happen, all combos are accounted for
 
     # Create weights tensor on the same device as preds
     weights_tensor = torch.tensor(weights, dtype=torch.float32, device=preds.device).detach()
@@ -916,23 +918,23 @@ def run_combo_V_4(INDEX, combo, total_offset , use_print_acc_vs_pred : bool , pr
             else:
                 loss_function = nn.MSELoss()
 
-            train_losses = []
-            val_losses = []
+            # train_losses = []
+            # val_losses = []
 
             if (not use_custom_loss_function_BCE_THRESH) and (not use_custom_loss_function_BCE_THRESH_AND_SEVERITY):
 
                 for epoch in range(num_epochs):
-                    train_one_epoch(model, train_loader, optimizer, loss_function, train_losses)
+                    train_one_epoch(model, train_loader, optimizer, loss_function   )
 
             if use_custom_loss_function_BCE_THRESH:
 
                 for epoch in range(num_epochs):
-                    train_one_epoch_custom_loss_BCE_THRESH(model, train_loader, optimizer, train_losses , balancing_Weight_factor = pos_weight_value ,use_LOW_weights = use_LOW_weights_for_BCE_custom_loss  )
+                    train_one_epoch_custom_loss_BCE_THRESH(model, train_loader, optimizer , balancing_Weight_factor = pos_weight_value ,use_LOW_weights = use_LOW_weights_for_BCE_custom_loss  )
 
             if use_custom_loss_function_BCE_THRESH_AND_SEVERITY:
 
                 for epoch in range(num_epochs):
-                    train_one_epoch_custom_loss_BCE_THRESH_AND_SEVERITY(model, train_loader, train_loader_RAW_Y_vals, optimizer, train_losses , balancing_Weight_factor = pos_weight_value ,use_LOW_weights = use_LOW_weights_for_BCE_custom_loss  )
+                    train_one_epoch_custom_loss_BCE_THRESH_AND_SEVERITY(model, train_loader, train_loader_RAW_Y_vals, optimizer , balancing_Weight_factor = pos_weight_value ,use_LOW_weights = use_LOW_weights_for_BCE_custom_loss  )
 
             ##### TESTING: print model architecture            ##### TESTING: print model architecture
             if store_model_weights:
