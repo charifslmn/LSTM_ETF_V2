@@ -501,7 +501,6 @@ def evaluate_signed_neg1_1(predicted_array, actual_array,do_print : bool ):
     recall_down = true_positives_down / actual_downs.sum() * 100 if actual_downs.sum() > 0 else float('nan')
 
 
-
     if actual_ups.sum() == 0 and predicted_ups.sum() == 0:
         precision_up = None
         recall_up = None
@@ -1108,3 +1107,6 @@ def run_combo_V_4(INDEX, combo, total_offset , use_print_acc_vs_pred : bool , pr
         return result_entry ,model_weight_dict
     else:
         return result_entry
+
+
+
