@@ -233,7 +233,7 @@ def recompute_metrics_ignoring_pos_fp(
         Note: The counts reflect FPs that *actually remained FPs after treatment*.
 
     """
-    BRACKETS = [(0.5, 0.7), (0.7, 1.0)]
+    BRACKETS = [(0.5, 0.7), (0.7, 1.0) , (0.9,1.0)]
     BRACKET_KEYS = [f"{L}-{H}" for (L, H) in BRACKETS]
 
     target_labels = _labels_from_targets(targets)
@@ -327,7 +327,7 @@ def recompute_metrics_ignoring_pos_fp(
                                     total_severe_fp += 1
                                     if key == "0.7-1.0":
                                         seed_severe_fp_high_bracket += 1
-                            break
+                            # break ### NEW NEW removed the break to allow pred to be stored in multiple brackets since they are now overlapping 
 
                     if not assigned:
                         if true_negative:
@@ -428,13 +428,13 @@ from collections import defaultdict
 
 def recompute_selected_models_on_Tset(results_dist_disc_Tset_same_seeds_organized,
                                       selected_models,
-                                      brackets=((0.5, 0.7), (0.7, 1.0))):
+                                      brackets=((0.5, 0.7), (0.7, 1.0) , (0.9,1.0))):
     """
     Recompute the SAME analytics produced by `select_models_by_criteria`
     for the SAME models & seeds, but using the T-set dataset.
     """
 
-    # Build an index of Tset models by combo_index for O(1) lookup
+
     tset_by_combo = {m["combo_index"]: m for m in results_dist_disc_Tset_same_seeds_organized}
 
     # Helper to compute all counts/metrics for a single model on Tset (across ALL seeds)
@@ -515,7 +515,7 @@ def recompute_selected_models_on_Tset(results_dist_disc_Tset_same_seeds_organize
                                     total_severe_fp += 1
                                     if key == "0.7-1.0":
                                         seed_severe_fp_high_bracket += 1
-                            break
+                            # break ### break has been removed since brackets are now overlapping to allow multiple preds to be stored in diff bracekts 
 
                     if not assigned:
                         if true_negative:
@@ -653,6 +653,10 @@ import random
 
 # Modified function to store TP and FP counts for each seed
 def select_models_by_criteria(results_data, 
+                              
+                             use_custom_thesh_loss_Fn = False,
+                             use_custom_thesh_severity_loss_Fn = False,
+
                              mean_precision_range=(0, 100),
                             
                              mean_recall_up_range=(0, 100),
@@ -677,7 +681,7 @@ def select_models_by_criteria(results_data,
     if random_seed is not None:
         random.seed(random_seed)
 
-    brackets = [(0.5, 0.7), (0.7, 1.0)]
+    brackets = [(0.5, 0.7), (0.7, 1.0) , (0.9,1.0)]
     model_summaries = []
 
     for model in results_data:
@@ -764,7 +768,8 @@ def select_models_by_criteria(results_data,
                                     # NEW: Check if this severe FP is in the high bracket (0.7-1.0)
                                     if key == "0.7-1.0":
                                         seed_severe_fp_high_bracket += 1
-                            break
+
+                            # break  ## NEW break removed to allow multiple bracket assignments for same pred since brackets now overlap
 
                     if not assigned:
                         if true_negative:
@@ -845,6 +850,15 @@ def select_models_by_criteria(results_data,
         mean_prec = m["mean_precision"] if not math.isnan(m["mean_precision"]) else -float("inf")
         if not (min_mean_prec <= mean_prec <= max_mean_prec):
             continue
+
+
+        if use_custom_thesh_loss_Fn:
+            if not (m["parameters"]["use_custom_loss_function_BCE_THRESH"] == True):
+                continue
+        
+        if use_custom_thesh_severity_loss_Fn:
+            if not (m["parameters"]["use_custom_loss_function_BCE_THRESH_AND_SEVERITY"] == True):
+                continue
 
         mean_rec = m["mean_recall_up"] if not math.isnan(m["mean_recall_up"]) else -float("inf")
         if not (min_mean_rec <= mean_rec <= max_mean_rec):
