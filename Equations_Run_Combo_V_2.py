@@ -37,16 +37,14 @@ import torch
 
 
 
-with open('/Users/cs/Desktop/LSTM_ETF_V2/short_dfs.pkl', 'rb') as f:
-    loaded_dfs = pickle.load(f)
+# with open('/Users/cs/Desktop/LSTM_ETF_V2/short_dfs.pkl', 'rb') as f:
+#     loaded_dfs = pickle.load(f)
 
 with open("/Users/cs/Desktop/LSTM_ETF_V2/lagged_cache.pkl", "rb") as f:
     lagged_cache = pickle.load(f)
 
 #*#*#* CHANGED: Set torch.backends.cudnn.enabled = True to ensure cuDNN is enabled for NVIDIA GPU acceleration.
 torch.backends.cudnn.enabled = True
-
-
 
 
 
